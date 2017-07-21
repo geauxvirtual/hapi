@@ -35,7 +35,7 @@ pub struct ServerConfig {
     pub address: String,
 
     #[serde(default = "default_server_port")]
-    pub port: u64,
+    pub port: u16,
 }
 
 fn default_server_config() -> ServerConfig {
@@ -49,7 +49,7 @@ fn default_server_address() -> String {
     "127.0.0.1".to_string()
 }
 
-fn default_server_port() -> u64 {
+fn default_server_port() -> u16 {
     8000
 }
 

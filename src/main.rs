@@ -1,3 +1,5 @@
+#![feature(plugin)]
+#![plugin(rocket_codegen)]
 // hapi is the API server.
 
 extern crate toml;
@@ -7,11 +9,15 @@ extern crate serde;
 extern crate clap;
 extern crate hdb;
 
+extern crate rocket;
+
 mod config;
 mod cli;
 
 use config::Config;
 use hdb::platform::connection::connect;
+use rocket::config::Config as RocketConfig;
+use rocket::config::Environment;
 
 fn main() {
     //let mut config = config::default();
@@ -36,4 +42,16 @@ fn main() {
     // TODO: Create connection pool
     let conn = connect(config.database);
     // TODO: Start Rocket
+    let server_config = RocketConfig::build(Environment::Development)
+        .address(config.server.address)
+        .port(config.server.port)
+        .unwrap();
+    rocket::custom(server_config, true)
+        .mount("/", routes![index])
+        .launch();
+}
+
+#[get("/")]
+fn index() -> &'static str {
+    "Welcome to hapi"
 }
