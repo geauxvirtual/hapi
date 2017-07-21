@@ -1,0 +1,17 @@
+[package]
+name = "hapi"
+version = "0.1.0"
+authors = ["Justin Guidroz <justin.guidroz@gmail.com>"]
+
+[dependencies]
+rocket = "0.3.0"
+rocket_codegen = "0.3.0"
+serde = "1.0"
+serde_derive = "1.0"
+toml = "0.4"
+clap = "2.25"
+
+[dependencies.rocket_contrib]
+version = "*"
+default-features = false
+features = ["json"]
