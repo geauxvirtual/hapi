@@ -21,7 +21,6 @@ fn main() {
     let config_file = matches.value_of("config").unwrap_or("/etc/hydra/hapi/config.toml");
     // TODO: Proper logging
     println!("Using config file: {}", config_file);
-    // TODO: Read config file
     let config: Config = match config::read_file(config_file) {
         Ok(s) => toml::from_str(&s).unwrap(),
         Err(e) => {
@@ -31,7 +30,6 @@ fn main() {
         }
     };
     println!("{:?}", config);
-    // TODO: Set config (Commandline precendence over config file)
     // TODO: Configure database connection
     // TODO: Start Rocket
 }
