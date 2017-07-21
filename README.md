@@ -15,7 +15,6 @@ address = "127.0.0.1"
 port = 8000
 
 [database]
-name = "database name"
 user = "database user"
 host = "127.0.0.1"
 port = 26572
