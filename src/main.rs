@@ -5,6 +5,7 @@ extern crate serde;
 #[macro_use] extern crate serde_derive;
 
 extern crate clap;
+extern crate hdb;
 
 mod config;
 mod cli;
