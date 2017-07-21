@@ -11,6 +11,7 @@ mod config;
 mod cli;
 
 use config::Config;
+use hdb::platform::connection::connect;
 
 fn main() {
     //let mut config = config::default();
@@ -30,6 +31,8 @@ fn main() {
         }
     };
     println!("{:?}", config);
-    // TODO: Configure database connection
+    
+    // Create database connection
+    let conn = connect(config.database);
     // TODO: Start Rocket
 }
