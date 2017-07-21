@@ -33,6 +33,7 @@ fn main() {
     println!("{:?}", config);
     
     // Create database connection
+    // TODO: Create connection pool
     let conn = connect(config.database);
     // TODO: Start Rocket
 }
