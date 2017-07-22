@@ -2,8 +2,7 @@ use std::io;
 use std::fs::File;
 use std::io::prelude::*;
 
-use hdb::platform::config;
-use hdb::platform::config::DatabaseConfig;
+use hdb::platform::Config as DatabaseConfig;
 
 pub fn read_file(file: &str) -> Result<String, io::Error> {
     let mut contents = String::new();
@@ -16,7 +15,7 @@ pub fn read_file(file: &str) -> Result<String, io::Error> {
 pub fn default() -> Config {
     Config {
         server: default_server_config(),
-        database: config::default_database_config(),
+        database: DatabaseConfig::default(),
     }
 }
 
@@ -25,7 +24,7 @@ pub struct Config {
     #[serde(default = "default_server_config")]
     pub server: ServerConfig,
 
-    #[serde(default = "config::default_database_config")]
+    #[serde(default = "DatabaseConfig::default")]
     pub database: DatabaseConfig,
 }
 
