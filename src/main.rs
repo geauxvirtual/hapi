@@ -13,6 +13,7 @@ extern crate rocket;
 
 mod config;
 mod cli;
+mod routes;
 
 use config::Config;
 use hdb::platform::Database;
@@ -49,11 +50,6 @@ fn main() {
         .unwrap();
     rocket::custom(server_config, true)
         .manage(pool)
-        .mount("/", routes![index])
+        .mount("/", routes![routes::index])
         .launch();
-}
-
-#[get("/")]
-fn index() -> &'static str {
-    "Welcome to hapi"
 }
