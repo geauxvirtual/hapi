@@ -11,12 +11,12 @@ extern crate hdb;
 
 extern crate rocket;
 
-mod config;
 mod cli;
+mod config;
+mod db;
 mod routes;
 
 use config::Config;
-use hdb::platform::Database;
 use rocket::config::Config as RocketConfig;
 use rocket::config::Environment;
 
@@ -40,8 +40,7 @@ fn main() {
     println!("{:?}", config);
     
     // Create database connection pool
-    let db = Database::new(config.database);
-    let pool = db.pool();
+    let pool = db::init_pool(config.database);
 
     // Configure and start Rocket
     let server_config = RocketConfig::build(Environment::Development)
