@@ -15,7 +15,7 @@ mod config;
 mod cli;
 
 use config::Config;
-use hdb::platform::connection::connect;
+use hdb::platform::Database;
 use rocket::config::Config as RocketConfig;
 use rocket::config::Environment;
 
@@ -38,15 +38,17 @@ fn main() {
     };
     println!("{:?}", config);
     
-    // Create database connection
-    // TODO: Create connection pool
-    let conn = connect(config.database);
-    // TODO: Start Rocket
+    // Create database connection pool
+    let db = Database::new(config.database);
+    let pool = db.pool();
+
+    // Configure and start Rocket
     let server_config = RocketConfig::build(Environment::Development)
         .address(config.server.address)
         .port(config.server.port)
         .unwrap();
     rocket::custom(server_config, true)
+        .manage(pool)
         .mount("/", routes![index])
         .launch();
 }

@@ -187,10 +187,11 @@ dependencies = [
 [[package]]
 name = "hdb"
 version = "0.1.0"
-source = "git+https://github.com/geauxvirtual/hdb.git#fd0a235222acaf256caf9d390cc3db1a4205d31f"
+source = "git+https://github.com/geauxvirtual/hdb.git#08df6cd67689d0285d5c0251c4c41cf48d3317d3"
 dependencies = [
  "openssl 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "postgres 0.14.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "r2d2 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "r2d2_postgres 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.10 (registry+https://github.com/rust-lang/crates.io-index)",
