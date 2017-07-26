@@ -1,3 +1,6 @@
+use rocket::response::status;
+use rocket::http::Status;
+
 use rocket_contrib::{Json, Value};
 
 use chrono::Utc;
@@ -19,15 +22,17 @@ struct UserRequest {
 }
 
 #[post("/register", format="application/json", data="<message>")]
-fn register(message: Json<UserRequest>, db: Conn) -> Json<Value> {
+fn register(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
     // Check if user already exists. Return error
     let exists = users::exists(&message.0.username, &db);
     // Create new user, return user or error
     if exists {
-        return Json(json!({
-            "status": "error",
-            "reason": "Email address already exists"
-        }))
+        return status::Custom(
+            Status::Conflict,
+            Json(json!({
+                "status": "error",
+                "reason": "Email address already exists"}))
+            )
     }
     // Generate Salt
     let salt = rand::thread_rng().gen_ascii_chars().take(32).collect::<String>();
@@ -43,11 +48,16 @@ fn register(message: Json<UserRequest>, db: Conn) -> Json<Value> {
     };
     let success = users::create(new_user, &db);
     if success {
-        Json(json!({ "status": "ok" }))
+        status::Custom(
+            Status::Created,
+            Json(json!({ "status": "ok" }))
+        )
     } else {
-        Json(json!({
-            "status": "error",
-            "reason": "error creating user"
-        }))
+        status::Custom(
+            Status::InternalServerError,
+            Json(json!({
+                "status": "error",
+                "reason": "error creating user"}))
+        )
     }
 }
