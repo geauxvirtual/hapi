@@ -61,3 +61,50 @@ fn register(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>>
         )
     }
 }
+
+#[post("/login", format="application/json", data="<message>")]
+fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
+    // Check if user exists
+    let exists = users::exists(&message.0.username, &db);
+    if !exists {
+        return status::Custom(
+            Status::Unauthorized,
+            Json(json!({
+                "status": "error",
+                "reason": "username or password incorrect"
+            }))
+        )
+    }
+    // Retrieve user from the database and try to validate
+    // authentication
+    let user = users::get_by_username(&message.0.username, &db).unwrap();
+    if !user.active {
+        return status::Custom(
+            Status::Unauthorized,
+            Json(json!({
+                "status": "error",
+                "reason": "username or password incorrect"
+            }))
+        )
+    }
+    
+    let a2 = Argon2::new(PASSES, LANES, KIB, Variant::Argon2d).unwrap();
+    let tph = Encoded::new(a2, message.0.password.as_bytes(), &user.salt, b"", b"").to_u8();
+    if tph == user.password {
+       // Return authorization key upon successful authentication 
+        status::Custom(
+            Status::Ok,
+            Json(json!({
+                "status": "ok"
+            }))
+        )
+    } else {
+        status::Custom(
+            Status::Unauthorized,
+            Json(json!({
+                "status": "error",
+                "reason": "username or password incorrect"
+            }))
+        )
+    }
+}
