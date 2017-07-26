@@ -10,6 +10,11 @@ extern crate clap;
 extern crate hdb;
 
 extern crate rocket;
+#[macro_use] extern crate rocket_contrib;
+
+extern crate argon2rs;
+extern crate rand;
+extern crate chrono;
 
 mod cli;
 mod config;
@@ -50,5 +55,6 @@ fn main() {
     rocket::custom(server_config, true)
         .manage(pool)
         .mount("/", routes![routes::index])
+        .mount("/user", routes![routes::user::register])
         .launch();
 }
