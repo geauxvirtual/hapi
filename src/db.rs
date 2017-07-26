@@ -1,8 +1,9 @@
+use std::ops::Deref;
 use rocket::http::Status;
 use rocket::request::{self, FromRequest};
 use rocket::{Request, State, Outcome};
 
-use hdb::platform::{Config, Database, Pool, PoolConnection};
+use hdb::platform::{Config, Database, Pool, PoolConnection, PlatformConnection};
 
 pub fn init_pool(config: Config) -> Pool {
     Database::new(config).pool()
@@ -19,5 +20,13 @@ impl<'a, 'r> FromRequest<'a, 'r> for Conn {
             Ok(conn) => Outcome::Success(Conn(conn)),
             Err(_) => Outcome::Failure((Status::ServiceUnavailable, ()))
         }
+    }
+}
+
+impl Deref for Conn {
+    type Target = PlatformConnection;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
