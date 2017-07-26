@@ -31,7 +31,7 @@ fn register(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>>
             Status::Conflict,
             Json(json!({
                 "status": "error",
-                "reason": "Email address already exists"}))
+                "reason": "Username already exists"}))
             )
     }
     // Generate Salt
@@ -67,25 +67,13 @@ fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
     // Check if user exists
     let exists = users::exists(&message.0.username, &db);
     if !exists {
-        return status::Custom(
-            Status::Unauthorized,
-            Json(json!({
-                "status": "error",
-                "reason": "username or password incorrect"
-            }))
-        )
+        return unauthorized()
     }
     // Retrieve user from the database and try to validate
     // authentication
     let user = users::get_by_username(&message.0.username, &db).unwrap();
     if !user.active {
-        return status::Custom(
-            Status::Unauthorized,
-            Json(json!({
-                "status": "error",
-                "reason": "username or password incorrect"
-            }))
-        )
+        return unauthorized()
     }
     
     let a2 = Argon2::new(PASSES, LANES, KIB, Variant::Argon2d).unwrap();
@@ -99,12 +87,17 @@ fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
             }))
         )
     } else {
-        status::Custom(
-            Status::Unauthorized,
-            Json(json!({
-                "status": "error",
-                "reason": "username or password incorrect"
-            }))
-        )
+        unauthorized()
     }
+}
+
+fn unauthorized() -> status::Custom<Json<Value>> {
+    status::Custom(
+        Status::Unauthorized,
+        Json(json!(
+                {
+                    "status": "error",
+                    "reason": "username or password is incorrect"
+                }
+            )))
 }
