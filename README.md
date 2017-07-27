@@ -1,6 +1,20 @@
 hapi - API Server
 =================
 
+Build
+-----
+
+```
+rustup run nightly cargo build
+```
+
+Run
+---
+
+```
+rustup run nightly cargo run -- -c <configuration path>
+```
+
 Configuration
 -------------
 
