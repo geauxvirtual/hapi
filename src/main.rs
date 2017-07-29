@@ -16,6 +16,7 @@ extern crate argon2rs;
 extern crate rand;
 extern crate chrono;
 
+mod auth;
 mod cli;
 mod config;
 mod db;

@@ -4,17 +4,13 @@ use rocket::http::Status;
 use rocket_contrib::{Json, Value};
 
 use chrono::Utc;
-use rand;
-use rand::Rng;
-use argon2rs::defaults::{KIB, LANES, PASSES};
-use argon2rs::verifier::Encoded;
-use argon2rs::{Argon2, Variant};
 
 use hdb::platform::models::users;
 use hdb::platform::models::users::NewUser;
 
 use db::Conn;
 use super::Response;
+use auth;
 
 #[derive(Deserialize)]
 struct UserRequest {
@@ -34,14 +30,13 @@ fn register(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>>
         )
     }
     // Generate Salt
-    let salt = rand::thread_rng().gen_ascii_chars().take(32).collect::<String>();
+    let salt = auth::generate_salt();
     // Generate password hash
-    let a2 = Argon2::new(PASSES, LANES, KIB, Variant::Argon2d).unwrap();
-    let password_hash = Encoded::new(a2, message.0.password.as_bytes(), salt.as_bytes(), b"", b"").to_u8(); 
+    let hash = auth::generate_hash(message.0.password, &salt);
     let new_user = NewUser {
         username: message.0.username, //Sanity check username??
-        salt: salt.as_bytes().to_vec(),
-        password: password_hash,
+        salt: salt,
+        password: hash,
         active: true,
         created_on: Utc::now(),
     };
@@ -73,8 +68,7 @@ fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
         return unauthorized()
     }
     
-    let a2 = Argon2::new(PASSES, LANES, KIB, Variant::Argon2d).unwrap();
-    let tph = Encoded::new(a2, message.0.password.as_bytes(), &user.salt, b"", b"").to_u8();
+    let tph = auth::generate_hash(message.0.password, &user.salt);
     if tph == user.password {
        // Return authorization key upon successful authentication 
         status::Custom(
