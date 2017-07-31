@@ -64,14 +64,13 @@ fn register(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>>
 
 #[post("/login", format="application/json", data="<message>")]
 fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
-    // Check if user exists
-    let exists = users::exists(&message.0.username, &db);
-    if !exists {
-        return unauthorized()
-    }
-    // Retrieve user from the database and try to validate
-    // authentication
-    let user = users::get_by_username(&message.0.username, &db).unwrap();
+    // Attempt to find user in the database. Return unauthorized if no user
+    // is found.
+    let user = match users::get_by_username(&message.0.username, &db) {
+        Ok(u) => u,
+        Err(_) => return unauthorized(),
+    };
+    
     if !user.active {
         return unauthorized()
     }
