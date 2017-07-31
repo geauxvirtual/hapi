@@ -4,6 +4,7 @@ use rocket::http::Status;
 use rocket_contrib::{Json, Value};
 
 use chrono::Utc;
+use uuid::Uuid;
 
 use hdb::platform::models::users;
 use hdb::platform::models::users::NewUser;
@@ -22,6 +23,7 @@ struct UserRequest {
 
 #[derive(Serialize)]
 struct AuthenticatedUser {
+    user_id: Uuid,
     username: String,
     access_token: String,
 }
@@ -91,6 +93,7 @@ fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
             status::Custom(
                 Status::Ok,
                 Json(json!(AuthenticatedUser{
+                    user_id: user.id,
                     username: user.username,
                     access_token: user_token.token,
                 }))

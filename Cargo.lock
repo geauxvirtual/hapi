@@ -13,6 +13,7 @@ dependencies = [
  "serde 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "uuid 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -235,7 +236,7 @@ dependencies = [
 [[package]]
 name = "hdb"
 version = "0.1.0"
-source = "git+https://github.com/geauxvirtual/hdb.git#d6951109dfd7f11bb1ef471d50fa8fc84ca84b6c"
+source = "git+https://github.com/geauxvirtual/hdb.git#d98eab4427354b16301e8913018b4f090cb2c21b"
 dependencies = [
  "chrono 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -14,6 +14,7 @@ hdb = { git = "https://github.com/geauxvirtual/hdb.git", features = ["with-opens
 argon2rs = "0.2"
 rand = "0.3"
 chrono = "0.4"
+uuid = { version = "0.5", features = ["serde"] }
 
 [dependencies.rocket_contrib]
 version = "*"

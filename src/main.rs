@@ -15,6 +15,7 @@ extern crate rocket;
 extern crate argon2rs;
 extern crate rand;
 extern crate chrono;
+extern crate uuid;
 
 mod auth;
 mod cli;
