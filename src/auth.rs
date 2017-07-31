@@ -1,3 +1,5 @@
+use chrono::{DateTime, Duration, Utc};
+
 use rand;
 use rand::Rng;
 use argon2rs::defaults::{KIB, LANES, PASSES};
@@ -17,10 +19,24 @@ pub fn generate_hash(pass: String, salt: &Vec<u8>) -> Vec<u8> {
 }
 
 pub fn generate_salt() -> Vec<u8> {
+    random(32).as_bytes().to_vec()
+}
+
+pub struct UserToken {
+    pub token: String,
+    pub expires: DateTime<Utc>,
+}
+
+pub fn generate_user_token() -> UserToken {
+    UserToken {
+        token: random(128),
+        expires: Utc::now() + Duration::seconds(3600),
+    }
+}
+
+fn random(take: usize) -> String {
     rand::thread_rng()
         .gen_ascii_chars()
-        .take(32)
+        .take(take)
         .collect::<String>()
-        .as_bytes()
-        .to_vec()
 }

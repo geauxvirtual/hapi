@@ -7,6 +7,8 @@ use chrono::Utc;
 
 use hdb::platform::models::users;
 use hdb::platform::models::users::NewUser;
+use hdb::platform::models::tokens;
+use hdb::platform::models::tokens::NewUserToken;
 
 use db::Conn;
 use super::Response;
@@ -16,6 +18,12 @@ use auth;
 struct UserRequest {
     username: String,
     password: String,
+}
+
+#[derive(Serialize)]
+struct AuthenticatedUser {
+    username: String,
+    access_token: String,
 }
 
 #[post("/register", format="application/json", data="<message>")]
@@ -70,11 +78,30 @@ fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
     
     let tph = auth::generate_hash(message.0.password, &user.salt);
     if tph == user.password {
-       // Return authorization key upon successful authentication 
-        status::Custom(
-            Status::Ok,
-            Json(json!(Response::new("ok", "Authentication successful")))
-        )
+        // TODO: Check if user already has an access token and return it
+        // if not expired
+
+        // Return authorization key upon successful authentication 
+        let user_token = auth::generate_user_token();
+        let new_user_token = NewUserToken {
+            username: user.username.clone(),
+            token: user_token.token.as_bytes().to_vec(),
+            expires: user_token.expires};
+        let success = tokens::create(new_user_token, &db);
+        if success {
+            status::Custom(
+                Status::Ok,
+                Json(json!(AuthenticatedUser{
+                    username: user.username,
+                    access_token: user_token.token,
+                }))
+            )
+        } else {
+            status::Custom(
+                Status::InternalServerError,
+                Json(json!(Response::new("error", "Internal server error")))
+            )
+        }
     } else {
         unauthorized()
     }
