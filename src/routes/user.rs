@@ -81,29 +81,64 @@ fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
     if tph == user.password {
         // TODO: Check if user already has an access token and return it
         // if not expired
+        let user_token = match tokens::get_by_username(&user.username, &db) {
+            // If user already has access_token retrieve it from the db
+            // and return it
+            Ok(ut) => {
+                // Check to see if token is valid
+                if Utc::now() < ut.expires {
+                    auth::UserToken {
+                        token: String::from_utf8(ut.token).unwrap(),
+                        expires: ut.expires,
+                    }
+                // Generate new token and update database entry
+                } else {
+                    let user_token  = auth::generate_user_token();
+                    let success = tokens::update(&ut.id,
+                                                 &user_token.token.as_bytes().to_vec(),
+                                                 &user_token.expires,
+                                                 &db);
+                    if success {
+                        user_token
+                    } else {
+                        return status::Custom(
+                            Status::InternalServerError,
+                            Json(json!(Response::new("error", "Internal server error")))
+                        )
+                    }
+                }
+            },
 
-        // Return authorization key upon successful authentication 
-        let user_token = auth::generate_user_token();
-        let new_user_token = NewUserToken {
-            username: user.username.clone(),
-            token: user_token.token.as_bytes().to_vec(),
-            expires: user_token.expires};
-        let success = tokens::create(new_user_token, &db);
-        if success {
-            status::Custom(
-                Status::Ok,
-                Json(json!(AuthenticatedUser{
-                    user_id: user.id,
-                    username: user.username,
-                    access_token: user_token.token,
-                }))
-            )
-        } else {
-            status::Custom(
-                Status::InternalServerError,
-                Json(json!(Response::new("error", "Internal server error")))
-            )
-        }
+            // If user does not have an access token, then create a new
+            // access_token for the user
+            Err(_) => {
+                let user_token = auth::generate_user_token();
+                let new_user_token = NewUserToken {
+                    username: user.username.clone(),
+                    token: user_token.token.as_bytes().to_vec(),
+                    expires: user_token.expires,
+                };
+                let success = tokens::create(new_user_token, &db);
+                if success {
+                    user_token
+                } else {
+                    return status::Custom(
+                        Status::InternalServerError,
+                        Json(json!(Response::new("error", "Internal server error")))
+                    )
+                }
+            }
+        };
+
+        // Return user_id, username, and access_token with successful login
+        status::Custom(
+            Status::Ok,
+            Json(json!(AuthenticatedUser{
+                user_id: user.id,
+                username: user.username,
+                access_token: user_token.token,
+            }))
+        )
     } else {
         unauthorized()
     }
