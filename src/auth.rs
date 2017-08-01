@@ -1,10 +1,33 @@
 use chrono::{DateTime, Duration, Utc};
 
+use rocket::http::Status;
+use rocket::request::{self, FromRequest};
+use rocket::{Request, Outcome};
+
 use rand;
 use rand::Rng;
 use argon2rs::defaults::{KIB, LANES, PASSES};
 use argon2rs::verifier::Encoded;
 use argon2rs::{Argon2, Variant};
+
+#[derive(Serialize)]
+pub struct AccessToken(pub String);
+
+impl<'a, 'r> FromRequest<'a, 'r> for AccessToken {
+    type Error = ();
+
+    fn from_request(request: &'a Request<'r>) -> request::Outcome<AccessToken, ()> {
+        let header_map = request.headers();
+        let value = header_map.get_one("Authorization");
+        match value {
+            Some(val) => {
+                let v: Vec<&str> = val.split_whitespace().collect();
+                Outcome::Success(AccessToken(v[1].to_string()))
+            },
+            None => Outcome::Failure((Status::Unauthorized, ()))
+        }
+    }
+}
 
 pub fn generate_hash(pass: String, salt: &Vec<u8>) -> Vec<u8> {
     let a2 = Argon2::new(PASSES,

@@ -1,7 +1,7 @@
 use rocket::response::status;
 use rocket::http::Status;
 
-use rocket_contrib::{Json, Value};
+use rocket_contrib::{Json, Value, UUID};
 
 use chrono::Utc;
 use uuid::Uuid;
@@ -14,6 +14,7 @@ use hdb::platform::models::tokens::NewUserToken;
 use db::Conn;
 use super::Response;
 use auth;
+use auth::AccessToken;
 
 #[derive(Deserialize)]
 struct UserRequest {
@@ -81,7 +82,7 @@ fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
     if tph == user.password {
         // TODO: Check if user already has an access token and return it
         // if not expired
-        let user_token = match tokens::get_by_username(&user.username, &db) {
+        let user_token = match tokens::get_by_user_id(&user.id, &db) {
             // If user already has access_token retrieve it from the db
             // and return it
             Ok(ut) => {
@@ -101,10 +102,7 @@ fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
                     if success {
                         user_token
                     } else {
-                        return status::Custom(
-                            Status::InternalServerError,
-                            Json(json!(Response::new("error", "Internal server error")))
-                        )
+                        return internal_server_error();
                     }
                 }
             },
@@ -114,7 +112,7 @@ fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
             Err(_) => {
                 let user_token = auth::generate_user_token();
                 let new_user_token = NewUserToken {
-                    username: user.username.clone(),
+                    user_id: user.id,
                     token: user_token.token.as_bytes().to_vec(),
                     expires: user_token.expires,
                 };
@@ -122,10 +120,7 @@ fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
                 if success {
                     user_token
                 } else {
-                    return status::Custom(
-                        Status::InternalServerError,
-                        Json(json!(Response::new("error", "Internal server error")))
-                    )
+                    return internal_server_error();
                 }
             }
         };
@@ -144,9 +139,66 @@ fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
     }
 }
 
+#[delete("/<id>")]
+fn delete(access_token: AccessToken, id: UUID, db: Conn) -> status::Custom<Json<Value>> {
+    // Try to retrieve access token for provied id. If no token found,
+    // return unauthorized
+    let token = match tokens::get_by_user_id(&id, &db) {
+        Ok(t) => t,
+        Err(_) => return unauthorized_token(),
+    };
+    // Check to see if access token retrieved matches access_token passed
+    // with request. Return unauthorized if they do not match
+    if access_token.0.as_bytes().to_vec() != token.token {
+        println!("1");
+        return unauthorized_token();
+    }
+    // Check to see if token retrieved is still valid. Remove token and
+    // return unauthorized if token is invalid.
+    if Utc::now() > token.expires {
+        println!("2");
+        let success = tokens::delete(&token.id, &db);
+        if success {
+            return unauthorized_token();
+        } else {
+            return internal_server_error();
+        }
+    }
+    
+    // Token matches saved token and is valid. Mark user as inactive.
+    // TODO: Marking user inactive and deleting any access tokens should
+    // be in a transaction.
+    let success = users::inactivate(&id, &db);
+    if success {
+        tokens::delete(&token.id, &db);
+        println!("3");
+        status::Custom(
+            Status::Ok,
+            Json(json!(Response::new("ok", "user inactive")))
+        )
+    } else {
+        println!("4");
+        internal_server_error()
+    }
+}
+
 fn unauthorized() -> status::Custom<Json<Value>> {
     status::Custom(
         Status::Unauthorized,
         Json(json!(Response::new("error", "username or password is incorrect")))
+    )
+}
+
+fn unauthorized_token() -> status::Custom<Json<Value>> {
+    status::Custom(
+        Status::Unauthorized,
+        Json(json!(Response::new("error", "unauthorized")))
+    )
+}
+
+fn internal_server_error() -> status::Custom<Json<Value>> {
+    status::Custom(
+        Status::InternalServerError,
+        Json(json!(Response::new("error", "internal server error")))
     )
 }

@@ -57,6 +57,8 @@ fn main() {
     rocket::custom(server_config, true)
         .manage(pool)
         .mount("/", routes![routes::index])
-        .mount("/user", routes![routes::user::register, routes::user::login])
+        .mount("/user", routes![routes::user::register,
+                                routes::user::login,
+                                routes::user::delete])
         .launch();
 }
