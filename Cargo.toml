@@ -19,4 +19,4 @@ uuid = { version = "0.5", features = ["serde"] }
 [dependencies.rocket_contrib]
 version = "*"
 default-features = false
-features = ["json"]
+features = ["json", "uuid"]
