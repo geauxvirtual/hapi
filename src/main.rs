@@ -2,20 +2,20 @@
 #![plugin(rocket_codegen)]
 // hapi is the API server.
 
-extern crate toml;
-extern crate serde;
-#[macro_use] extern crate serde_derive;
-
+// external libs
+extern crate argon2rs;
+extern crate chrono;
 extern crate clap;
-extern crate hdb;
-
+extern crate rand;
 extern crate rocket;
 #[macro_use] extern crate rocket_contrib;
-
-extern crate argon2rs;
-extern crate rand;
-extern crate chrono;
+extern crate serde;
+#[macro_use] extern crate serde_derive;
+extern crate toml;
 extern crate uuid;
+
+// Platform libs
+extern crate hdb;
 
 mod auth;
 mod cli;
@@ -33,14 +33,17 @@ fn main() {
     let matches = cli::new().get_matches();
     // Use config passed in on cli or default to default location:
     // /etc/hydra/hapi/config.toml
-    let config_file = matches.value_of("config").unwrap_or("/etc/hydra/hapi/config.toml");
+    let config_file = matches
+        .value_of("config")
+        .unwrap_or("/etc/hydra/hapi/config.toml");
     // TODO: Proper logging
     println!("Using config file: {}", config_file);
     let config: Config = match config::read_file(config_file) {
         Ok(s) => toml::from_str(&s).unwrap(),
         Err(e) => {
             eprintln!("Error {} with config file {}", e, config_file);
-            println!("Error using config file {}. Using default config instead.", config_file);
+            println!("Error using config file {}. Using default config instead.",
+                     config_file);
             config::default()
         }
     };
