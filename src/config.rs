@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::prelude::*;
 
 use hdb::platform::Config as DatabaseConfig;
+use auth::Secret;
 
 pub fn read_file(file: &str) -> Result<String, io::Error> {
     let mut contents = String::new();
@@ -35,12 +36,16 @@ pub struct ServerConfig {
 
     #[serde(default = "default_server_port")]
     pub port: u16,
+
+    #[serde(default = "default_secret")]
+    pub secret: Secret,
 }
 
 fn default_server_config() -> ServerConfig {
     ServerConfig {
         address: default_server_address(),
         port: default_server_port(),
+        secret: default_secret(),
     }
 }
 
@@ -50,5 +55,9 @@ fn default_server_address() -> String {
 
 fn default_server_port() -> u16 {
     8000
+}
+
+fn default_secret() -> String {
+    "".to_string()
 }
 

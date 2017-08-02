@@ -1,3 +1,4 @@
+use rocket::request::State;
 use rocket::response::status;
 use rocket::http::Status;
 
@@ -14,7 +15,7 @@ use hdb::platform::models::tokens::NewUserToken;
 use db::Conn;
 use super::Response;
 use auth;
-use auth::AccessToken;
+use auth::{AccessToken, UserToken, Secret};
 
 #[derive(Deserialize)]
 struct UserRequest {
@@ -66,7 +67,7 @@ fn register(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>>
 }
 
 #[post("/login", format="application/json", data="<message>")]
-fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
+fn login(message: Json<UserRequest>, db: Conn, secret: State<Secret>) -> status::Custom<Json<Value>> {
     // Attempt to find user in the database. Return unauthorized if no user
     // is found.
     let user = match users::get_by_username(&message.0.username, &db) {
@@ -86,18 +87,22 @@ fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
             // If user already has access_token retrieve it from the db
             // and return it
             Ok(ut) => {
+                let token = match String::from_utf8(ut.token) {
+                    Ok(t) => t,
+                    Err(_) => return internal_server_error(),
+                };
                 // Check to see if token is valid
-                if Utc::now() < ut.expires {
-                    auth::UserToken {
-                        token: String::from_utf8(ut.token).unwrap(),
-                        expires: ut.expires,
-                    }
-                // Generate new token and update database entry
+                if UserToken::validate(&token, &secret, &user.id.to_string()) {
+                    token
+                // If the current user token is invalid, generate a new
+                // user token and return it
                 } else {
-                    let user_token  = auth::generate_user_token();
+                    let user_token = match UserToken::new(&user.id.to_string(), &secret) {
+                        Ok(ut) => ut,
+                        Err(_) => return internal_server_error(),
+                    };
                     let success = tokens::update(&ut.id,
-                                                 &user_token.token.as_bytes().to_vec(),
-                                                 &user_token.expires,
+                                                 &user_token.as_bytes().to_vec(),
                                                  &db);
                     if success {
                         user_token
@@ -110,11 +115,13 @@ fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
             // If user does not have an access token, then create a new
             // access_token for the user
             Err(_) => {
-                let user_token = auth::generate_user_token();
+                let user_token = match UserToken::new(&user.id.to_string(), &secret) {
+                    Ok(ut) => ut,
+                    Err(_) => return internal_server_error(),
+                };
                 let new_user_token = NewUserToken {
                     user_id: user.id,
-                    token: user_token.token.as_bytes().to_vec(),
-                    expires: user_token.expires,
+                    token: user_token.as_bytes().to_vec(),
                 };
                 let success = tokens::create(new_user_token, &db);
                 if success {
@@ -131,7 +138,7 @@ fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
             Json(json!(AuthenticatedUser{
                 user_id: user.id,
                 username: user.username,
-                access_token: user_token.token,
+                access_token: user_token,
             }))
         )
     } else {
@@ -140,45 +147,25 @@ fn login(message: Json<UserRequest>, db: Conn) -> status::Custom<Json<Value>> {
 }
 
 #[delete("/<id>")]
-fn delete(access_token: AccessToken, id: UUID, db: Conn) -> status::Custom<Json<Value>> {
-    // Try to retrieve access token for provied id. If no token found,
-    // return unauthorized
-    let token = match tokens::get_by_user_id(&id, &db) {
-        Ok(t) => t,
-        Err(_) => return unauthorized_token(),
-    };
-    // Check to see if access token retrieved matches access_token passed
-    // with request. Return unauthorized if they do not match
-    if access_token.0.as_bytes().to_vec() != token.token {
-        println!("1");
-        return unauthorized_token();
-    }
-    // Check to see if token retrieved is still valid. Remove token and
-    // return unauthorized if token is invalid.
-    if Utc::now() > token.expires {
-        println!("2");
-        let success = tokens::delete(&token.id, &db);
-        if success {
-            return unauthorized_token();
+fn delete(access_token: AccessToken, id: UUID, db: Conn, secret: State<Secret>) -> status::Custom<Json<Value>> {
+    // Validate received token
+    if UserToken::validate(&access_token.0, &secret, &id.to_string()) {
+        if users::inactivate(&id, &db) {
+            let token = tokens::get_by_user_id(&id, &db).unwrap();
+            if tokens::delete(&token.id, &db) {
+                status::Custom(
+                    Status::Ok,
+                    Json(json!(Response::new("ok", "user inactive")))
+                )
+            } else {
+                internal_server_error()
+            }
         } else {
-            return internal_server_error();
+            internal_server_error()
         }
-    }
-    
-    // Token matches saved token and is valid. Mark user as inactive.
-    // TODO: Marking user inactive and deleting any access tokens should
-    // be in a transaction.
-    let success = users::inactivate(&id, &db);
-    if success {
-        tokens::delete(&token.id, &db);
-        println!("3");
-        status::Custom(
-            Status::Ok,
-            Json(json!(Response::new("ok", "user inactive")))
-        )
     } else {
-        println!("4");
-        internal_server_error()
+    // Invalid token passed to us.
+        unauthorized_token()
     }
 }
 

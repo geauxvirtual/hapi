@@ -15,6 +15,7 @@ argon2rs = "0.2"
 rand = "0.3"
 chrono = "0.4"
 uuid = { version = "0.5", features = ["serde"] }
+jsonwebtoken = "2"
 
 [dependencies.rocket_contrib]
 version = "*"

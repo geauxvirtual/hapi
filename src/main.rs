@@ -6,6 +6,7 @@
 extern crate argon2rs;
 extern crate chrono;
 extern crate clap;
+extern crate jsonwebtoken as jwt;
 extern crate rand;
 extern crate rocket;
 #[macro_use] extern crate rocket_contrib;
@@ -59,6 +60,7 @@ fn main() {
         .unwrap();
     rocket::custom(server_config, true)
         .manage(pool)
+        .manage(config.server.secret)
         .mount("/", routes![routes::index])
         .mount("/user", routes![routes::user::register,
                                 routes::user::login,

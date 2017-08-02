@@ -1,4 +1,4 @@
-use chrono::{DateTime, Duration, Utc};
+use chrono::{Duration, Utc};
 
 use rocket::http::Status;
 use rocket::request::{self, FromRequest};
@@ -9,6 +9,11 @@ use rand::Rng;
 use argon2rs::defaults::{KIB, LANES, PASSES};
 use argon2rs::verifier::Encoded;
 use argon2rs::{Argon2, Variant};
+
+use jwt;
+use jwt::{encode, decode, Header, Validation};
+
+pub type Secret = String;
 
 #[derive(Serialize)]
 pub struct AccessToken(pub String);
@@ -32,6 +37,50 @@ impl<'a, 'r> FromRequest<'a, 'r> for AccessToken {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+struct Claim {
+    // User id token is issued for
+    sub: String,
+    // Time token was issued
+    iat: i64,
+    // Time token expires.
+    exp: i64,
+}
+
+impl Claim {
+    fn new(sub: &str, iat: i64, exp: i64) -> Claim {
+        Claim {
+            sub: sub.to_string(),
+            iat: iat,
+            exp: exp,
+        }
+    }
+}
+
+pub struct UserToken;
+
+impl UserToken {
+    pub fn new(sub: &str, secret: &Secret) -> Result<String, jwt::errors::Error> {
+        let now = Utc::now();
+        let expires = now + Duration::seconds(3600);
+        let claim = Claim::new(sub, now.timestamp(), expires.timestamp());
+        encode(&Header::default(), &claim, secret.as_bytes())
+    }
+
+    pub fn validate(token: &str, secret: &Secret, sub: &str) -> bool {
+        let validation = Validation {
+            sub: Some(sub.to_string()),
+            ..Default::default()
+        };
+        match decode::<Claim>(&token, secret.as_bytes(), &validation) {
+            Ok(_) => true,
+            Err(_) => false,
+        }
+    }
+}
+
+
+// Functions for hashing user passwords
 pub fn generate_hash(pass: String, salt: &Vec<u8>) -> Vec<u8> {
     let a2 = Argon2::new(PASSES,
                          LANES,
@@ -46,18 +95,6 @@ pub fn generate_hash(pass: String, salt: &Vec<u8>) -> Vec<u8> {
 
 pub fn generate_salt() -> Vec<u8> {
     random(32).as_bytes().to_vec()
-}
-
-pub struct UserToken {
-    pub token: String,
-    pub expires: DateTime<Utc>,
-}
-
-pub fn generate_user_token() -> UserToken {
-    UserToken {
-        token: random(128),
-        expires: Utc::now() + Duration::seconds(3600),
-    }
 }
 
 fn random(take: usize) -> String {
