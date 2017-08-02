@@ -21,8 +21,11 @@ impl<'a, 'r> FromRequest<'a, 'r> for AccessToken {
         let value = header_map.get_one("Authorization");
         match value {
             Some(val) => {
-                let v: Vec<&str> = val.split_whitespace().collect();
-                Outcome::Success(AccessToken(v[1].to_string()))
+                // Bearer should proceed the access token
+                // If the token does not start at index 7, an error
+                // will be returned when trying to validate the token
+                let (_, v) = val.split_at(7);
+                Outcome::Success(AccessToken(v.to_string()))
             },
             None => Outcome::Failure((Status::Unauthorized, ()))
         }
