@@ -154,8 +154,8 @@ fn delete(access_token: AccessToken, id: UUID, db: Conn, secret: State<Secret>) 
             let token = tokens::get_by_user_id(&id, &db).unwrap();
             if tokens::delete(&token.id, &db) {
                 status::Custom(
-                    Status::Ok,
-                    Json(json!(Response::new("ok", "user inactive")))
+                    Status::Accepted,
+                    Json(json!(Response::new("accepted", "user inactive")))
                 )
             } else {
                 internal_server_error()
