@@ -1,3 +1,4 @@
+pub mod error;
 pub mod user;
 
 #[derive(Serialize)]

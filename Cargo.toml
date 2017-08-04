@@ -16,6 +16,7 @@ rand = "0.3"
 chrono = "0.4"
 uuid = { version = "0.5", features = ["serde"] }
 jsonwebtoken = "2"
+multipart = { version = "0.13", features = ["server"] }
 
 [dependencies.rocket_contrib]
 version = "*"

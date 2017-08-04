@@ -7,6 +7,7 @@ extern crate argon2rs;
 extern crate chrono;
 extern crate clap;
 extern crate jsonwebtoken as jwt;
+extern crate multipart;
 extern crate rand;
 extern crate rocket;
 #[macro_use] extern crate rocket_contrib;
@@ -22,7 +23,11 @@ mod auth;
 mod cli;
 mod config;
 mod db;
+mod file;
 mod routes;
+
+use std::fs;
+use std::path::Path;
 
 use config::Config;
 use rocket::config::Config as RocketConfig;
@@ -49,21 +54,29 @@ fn main() {
         }
     };
     println!("{:?}", config);
-    
+
+    // Create directory to store user files
+    // TODO: Configure permissions on directory
+    fs::create_dir_all(Path::new(&config.server.file_dir)).unwrap();
+
     // Create database connection pool
     let pool = db::init_pool(config.database);
 
     // Configure and start Rocket
     let server_config = RocketConfig::build(Environment::Development)
-        .address(config.server.address)
+        .address(config.server.address.clone())
         .port(config.server.port)
         .unwrap();
     rocket::custom(server_config, true)
         .manage(pool)
-        .manage(config.server.secret)
+        .manage(config.server)
         .mount("/", routes![routes::index])
         .mount("/users", routes![routes::user::register,
                                 routes::user::login,
-                                routes::user::delete])
+                                routes::user::delete,
+                                routes::user::import])
+        .catch(errors![routes::error::bad_request,
+                       routes::error::length_required,
+                       routes::error::payload_too_large])
         .launch();
 }

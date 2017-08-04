@@ -13,8 +13,6 @@ use argon2rs::{Argon2, Variant};
 use jwt;
 use jwt::{encode, decode, Header, Validation};
 
-pub type Secret = String;
-
 #[derive(Serialize)]
 pub struct AccessToken(pub String);
 
@@ -60,14 +58,14 @@ impl Claim {
 pub struct UserToken;
 
 impl UserToken {
-    pub fn new(sub: &str, secret: &Secret) -> Result<String, jwt::errors::Error> {
+    pub fn new(sub: &str, secret: &str) -> Result<String, jwt::errors::Error> {
         let now = Utc::now();
         let expires = now + Duration::seconds(3600);
         let claim = Claim::new(sub, now.timestamp(), expires.timestamp());
         encode(&Header::default(), &claim, secret.as_bytes())
     }
 
-    pub fn validate(token: &str, secret: &Secret, sub: &str) -> bool {
+    pub fn validate(token: &str, secret: &str, sub: &str) -> bool {
         let validation = Validation {
             sub: Some(sub.to_string()),
             ..Default::default()
