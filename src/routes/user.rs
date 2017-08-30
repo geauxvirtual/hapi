@@ -7,17 +7,14 @@ use rocket_contrib::{Json, Value, UUID};
 use chrono::Utc;
 use uuid::Uuid;
 
-use hdb::platform::models::users;
-use hdb::platform::models::users::NewUser;
-use hdb::platform::models::tokens;
-use hdb::platform::models::tokens::NewUserToken;
+use hdb::platform::models::users::{self, NewUser};
+use hdb::platform::models::tokens::{self, NewUserToken};
 use hdb::platform::models::activities::{self, NewActivity};
 
 use db::Conn;
 use file::{self, ActivityRequest};
 use super::Response;
-use auth;
-use auth::{AccessToken, UserToken};
+use auth::{self, AccessToken, UserToken};
 use config::ServerConfig;
 
 use std::fs::File;

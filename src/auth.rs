@@ -4,14 +4,12 @@ use rocket::http::Status;
 use rocket::request::{self, FromRequest};
 use rocket::{Request, Outcome};
 
-use rand;
-use rand::Rng;
+use rand::{self, Rng};
 use argon2rs::defaults::{KIB, LANES, PASSES};
 use argon2rs::verifier::Encoded;
 use argon2rs::{Argon2, Variant};
 
-use jwt;
-use jwt::{encode, decode, Header, Validation};
+use jwt::{self, encode, decode, Header, Validation};
 
 #[derive(Serialize)]
 pub struct AccessToken(pub String);
